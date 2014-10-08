@@ -50,12 +50,18 @@ docker run -d --env "DOCKER_HOST=$DOCKER_HOST" -v `pwd`/data:/app/data -p 5005:5
 
 Outputs an Nginx configuration file with reverse proxy configurations for the catalog's virtual hosts, according to each container's `VHOSTNAME` environment variable.
 
+### `GET /value`
+
+Get all values from the key/value store.
+
+
 ### `GET /value/<key>`
 
 Parameter: `key`
 
 
 Get a value from the key/value store.
+
 
 ### `POST /value/<key>`
 

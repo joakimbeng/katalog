@@ -24,6 +24,10 @@ app.use(function (req, res, next) {
 
 app.set('port', process.env.PORT || 5005);
 
+app.get('/value', function (req, res) {
+  return res.status(200).send(storage.getValues());
+});
+
 app.get('/value/:key', function (req, res) {
   var val = storage.getValue(req.params.key);
   if (typeof val === 'undefined') {

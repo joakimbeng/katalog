@@ -45,6 +45,10 @@ exports.getValue = function getValue (key) {
   return (storage.keys || {})[key];
 };
 
+exports.getValues = function getValues () {
+  return (storage.keys || {});
+};
+
 exports.getServices = function getServices (all) {
   if (!!all) {
     return storage.services;
