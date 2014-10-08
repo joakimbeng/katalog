@@ -80,10 +80,14 @@ Example data:
   "name": "dev.example.com",
   "port": "8080",
   "version": "1.0.0",
-  "ip": "<ip address>", // Optional, uses remote address if not specified
-  "id": "<identifier>" // Optional, generates a value from ip, name, version and port if not specified
+  "ip": "<ip address>",
+  "id": "<identifier>"
 }
 ```
+
+**`ip`:** Optional, uses remote address if not specified
+**`id`:** Optional, generates a value from ip, name, version and port if not specified
+
 
 Will yield a json object as response with the property `id`, that value is used in the delete endpoint below.
 
@@ -114,10 +118,14 @@ Example data:
   "name": "mysql",
   "port": "3306",
   "version": "5.5.6",
-  "ip": "<ip address>", // Optional, uses remote address if not specified
-  "id": "<identifier>" // Optional, generates a value from ip, name, version and port if not specified
+  "ip": "<ip address>",
+  "id": "<identifier>"
 }
 ```
+
+**`ip`:** Optional, uses remote address if not specified
+**`id`:** Optional, generates a value from ip, name, version and port if not specified
+
 
 Will yield a json object as response with the property `id`, that value is used in the delete endpoint below.
 
