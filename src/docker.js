@@ -2,6 +2,7 @@ var Docker = require('dockerode');
 var DockerEvents = require('docker-events');
 var util = require('util');
 var storage = require('./storage');
+var slug = require('./slug');
 
 var docker = new Docker({
   host: process.env.DOCKER_HOST ? 'http' + process.env.DOCKER_HOST.slice(3) : 'http://localhost',
@@ -66,7 +67,7 @@ function syncContainers (message) {
     }
     hosts = hosts.map(function (host) {
       host.id = message.id;
-      host.slug = host.name.replace(/[^a-z_]/g, '_');
+      host.slug = slug(host.name);
       host.image = name;
       host.version = version;
       host.ip = ip;

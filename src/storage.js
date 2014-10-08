@@ -11,6 +11,14 @@ exports.get = function get () {
   return storage;
 };
 
+exports.setValue = function setValue (key, value) {
+  if (!storage.keys) {
+    storage.keys = {};
+  }
+  storage.keys[key] = value;
+  exports.persist();
+};
+
 exports.addVhost = function addVhost (host) {
   if (!storage.vhosts) {
     storage.vhosts = {};
@@ -31,6 +39,10 @@ exports.addService = function addService (service) {
   }
   storage.services[service.name].push(service);
   exports.persist();
+};
+
+exports.getValue = function getValue (key) {
+  return (storage.keys || {})[key];
 };
 
 exports.getServices = function getServices (all) {

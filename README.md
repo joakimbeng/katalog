@@ -50,9 +50,48 @@ docker run -d --env "DOCKER_HOST=$DOCKER_HOST" -v `pwd`/data:/app/data -p 5005:5
 
 Outputs an Nginx configuration file with reverse proxy configurations for the catalog's virtual hosts, according to each container's `VHOSTNAME` environment variable.
 
+### `GET /value/<key>`
+
+Parameter: `key`
+
+
+Get a value from the key/value store.
+
+### `POST /value/<key>`
+
+Parameter: `key`
+
+
+Set a value in the key/value store.
+
+
 ### `GET /vhost`
 
 Returns each virtual host in the catalog, if multiple containers have the same virtual hostname only the containers using the image with highest version number (container tag) will be returned. To get all virtual hosts regardless of version number, use `?all=true` as query string parameter.
+
+### `POST /vhost`
+
+Used to manually add a virtual host to the catalog.
+
+Example data:
+
+```json
+{
+  "name": "dev.example.com",
+  "port": "8080",
+  "version": "1.0.0",
+  "ip": "<ip address>", // Optional, uses remote address if not specified
+  "id": "<identifier>" // Optional, generates a value from ip, name, version and port if not specified
+}
+```
+
+Will yield a json object as response with the property `id`, that value is used in the delete endpoint below.
+
+### `DELETE /vhost/<id>`
+
+Parameter: `id`
+
+Used to manually remove a virtual host from the catalog. Id should be the same as the one in the response when adding the virtual host.
 
 ### `GET /service`
 
@@ -74,7 +113,9 @@ Example data:
 {
   "name": "mysql",
   "port": "3306",
-  "version": "5.5.6"
+  "version": "5.5.6",
+  "ip": "<ip address>", // Optional, uses remote address if not specified
+  "id": "<identifier>" // Optional, generates a value from ip, name, version and port if not specified
 }
 ```
 
