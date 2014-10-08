@@ -1,11 +1,10 @@
 var express = require('express');
-var mustache = require('mustache');
-var fs = require('fs');
 var path = require('path');
 var morgan = require('morgan');
 var bodyParser = require('body-parser');
 var storage = require('./storage');
 var slug = require('./slug');
+var nginx = require('./nginx');
 var env = process.env.NODE_ENV || 'development';
 var app = express();
 
@@ -136,19 +135,11 @@ app.get('/vhost', function (req, res) {
 });
 
 app.get('/nginx', function (req, res) {
-  var vhosts = storage.getVhosts() || {};
-
-  var data = {vhosts: []};
-
-  data.vhosts = Object.keys(vhosts).map(function (slug) {
-    return {slug: slug, host: vhosts[slug][0].name, servers: vhosts[slug]};
-  });
-
-  fs.readFile(path.join(__dirname, '..', 'tpl', 'nginx.mustache'), 'utf8', function (err, content) {
+  nginx.render(function (err, config) {
     if (err) {
       return res.status(500).send(err);
     }
-    return res.status(200).send(mustache.render(content, data));
+    return res.status(200).send(config);
   });
 });
 

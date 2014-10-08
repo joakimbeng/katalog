@@ -12,6 +12,8 @@ ADD index.js /app/index.js
 
 ENV PORT 5005
 
+VOLUME ["/app/data", "/app/nginx"]
+
 EXPOSE 5005
 
 CMD ["node", "index.js"]

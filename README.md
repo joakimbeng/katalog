@@ -8,6 +8,22 @@ katalog
 Katalog listens on Docker events, like container starts and stops.
 It looks for environment variables in containers with names `VHOSTNAME` and `SERVICES` and automatically adds them to its service and virtual host catalog.
 
+## Usage
+
+**Build**:
+
+```bash
+docker pull joakimbeng/katalog
+```
+
+**Run**:
+
+```bash
+docker run -d --env "DOCKER_HOST=$DOCKER_HOST" -v `pwd`/data:/app/data -v `pwd`/nginx:/app/nginx -p 5005:5005 katalog
+```
+
+**TIP:** Use this in conjunction with `joakimbeng/nginx-site-watcher` and mount the `/app/nginx` volume above to `/etc/nginx/sites-enabled` in the nginx container.
+
 ### `VHOSTNAME`
 
 Format: `<hostname>[:<port>][,<hostname2>[:<port>]...]`.
@@ -29,20 +45,6 @@ Having the environment variable set as above would fill the service catalog with
 
 To get information about existing services see `/service` enpoint in the API below.
 
-
-## Run as a Docker container
-
-**Build**:
-
-```bash
-docker build -t katalog .
-```
-
-**Run**:
-
-```bash
-docker run -d --env "DOCKER_HOST=$DOCKER_HOST" -v `pwd`/data:/app/data -p 5005:5005 katalog
-```
 
 ## API
 
@@ -91,8 +93,8 @@ Example data:
 }
 ```
 
-**`ip`:** Optional, uses remote address if not specified
-**`id`:** Optional, generates a value from ip, name, version and port if not specified
+* `ip`: Optional, uses remote address if not specified
+* `id`: Optional, generates a value from ip, name, version and port if not specified
 
 
 Will yield a json object as response with the property `id`, that value is used in the delete endpoint below.
@@ -129,8 +131,8 @@ Example data:
 }
 ```
 
-**`ip`:** Optional, uses remote address if not specified
-**`id`:** Optional, generates a value from ip, name, version and port if not specified
+* `ip`: Optional, uses remote address if not specified
+* `id`: Optional, generates a value from ip, name, version and port if not specified
 
 
 Will yield a json object as response with the property `id`, that value is used in the delete endpoint below.

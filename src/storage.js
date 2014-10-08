@@ -6,6 +6,7 @@ var semver = require('semver');
 var LOCATION = path.join(__dirname, '..', 'data', 'storage.json');
 
 var storage = null;
+var listeners = {persist: []};
 
 exports.get = function get () {
   return storage;
@@ -146,8 +147,15 @@ exports.load = function load (cb) {
   });
 };
 
+exports.onPersist = function onPersist (listener) {
+  listeners.persist.push(listener);
+};
+
 exports.persist = function persist (cb) {
   print(storage);
+
+  trigger('persist');
+
   exports.save(storage, function (err) {
     if (err) {
       console.error(err);
@@ -172,6 +180,14 @@ function print (what) {
   }
   log('vhosts', JSON.stringify(what.vhosts || {}));
   log('services', JSON.stringify(what.services || {}));
+}
+
+function trigger (evt) {
+  listeners[evt].forEach(function (listener) {
+    setTimeout(function () {
+      listener();
+    }, 0);
+  });
 }
 
 function log () {
