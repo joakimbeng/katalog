@@ -5,8 +5,7 @@ var storage = require('./storage');
 var slug = require('./slug');
 
 var docker = new Docker({
-  host: process.env.DOCKER_HOST ? 'http' + process.env.DOCKER_HOST.slice(3) : 'http://localhost',
-  port: 4243
+  socketPath: '/var/run/docker.sock'
 });
 
 var emitter = new DockerEvents({docker: docker});
