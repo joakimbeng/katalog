@@ -53,6 +53,8 @@ function syncContainers (message) {
     if (err) {
       return error(err);
     }
+    console.log(util.inspect(data, {colors: true, depth: 100}));
+
     var defaultPort = getDefaultPort(data.Config.ExposedPorts);
     var ip = data.NetworkSettings.IPAddress;
     var env = arrayToObject(parseEnvVars(data.Config.Env));

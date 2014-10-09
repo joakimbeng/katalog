@@ -6,7 +6,7 @@ katalog
 ## What?
 
 Katalog listens on Docker events, like container starts and stops.
-It looks for environment variables in containers with names `VHOSTNAME` and `SERVICES` and automatically adds them to its service and virtual host catalog.
+It looks for environment variables in containers with names `VHOSTNAME` and `SERVICES` and automatically adds them to its service and virtual host catalog. It also generates an nginx reversed proxy config for all virtual hosts.
 
 ## Usage
 

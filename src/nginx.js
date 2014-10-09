@@ -3,14 +3,23 @@ var fs = require('fs');
 var path = require('path');
 var storage = require('./storage');
 
+var timeoutId = null
+
 storage.onPersist(function () {
-  save(path.join(__dirname, '..', 'nginx', process.env.SITE_NAME || 'default-site'), function (err) {
-    if (err) {
-      error(err);
-    } else {
-      log('Site config saved');
-    }
-  });
+  if (timeoutId) {
+    clearTimeout(timeoutId);
+  }
+  log('About to save site config...');
+  timeoutId = setTimeout(function () {
+    timeoutId = null;
+    save(path.join(__dirname, '..', 'nginx', process.env.SITE_NAME || 'default-site'), function (err) {
+      if (err) {
+        error(err);
+      } else {
+        log('Site config saved');
+      }
+    });
+  }, 1000 * (process.env.SITE_SAVE_DELAY || 10));
 });
 
 exports.render = function render (cb) {
