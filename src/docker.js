@@ -49,11 +49,12 @@ function syncContainers (message) {
     storage.removeImage(message.id);
     return;
   }
-  docker.getContainer(message.id).inspect(function (err, data) {
+  var container = docker.getContainer(message.id);
+
+  container.inspect(function (err, data) {
     if (err) {
       return error(err);
     }
-    console.log(util.inspect(data, {colors: true, depth: 100}));
 
     var defaultPort = getDefaultPort(data.Config.ExposedPorts);
     var ip = data.NetworkSettings.IPAddress;
@@ -62,7 +63,7 @@ function syncContainers (message) {
     var name = nameParts[0];
     var version = fixVersion(nameParts[1]) || 'latest';
 
-    var hosts = (env.VHOSTNAME || []);
+    var hosts = (env.KATALOG_VHOSTS || []);
     if (data.Config.Hostname && data.Config.Domainname) {
       hosts.push({name: data.Config.Hostname + '.' + data.Config.Domainname});
     }
@@ -76,7 +77,7 @@ function syncContainers (message) {
       return host;
     });
 
-    var services = (env.SERVICES || []);
+    var services = (env.KATALOG_SERVICES || []);
     services = services.map(function (service) {
       service.id = message.id;
       service.image = name;

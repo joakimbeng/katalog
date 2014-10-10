@@ -6,7 +6,7 @@ katalog
 ## What?
 
 Katalog listens on Docker events, like container starts and stops.
-It looks for environment variables in containers with names `VHOSTNAME` and `SERVICES` and automatically adds them to its service and virtual host catalog. It also generates an nginx reversed proxy config for all virtual hosts.
+It looks for environment variables in containers with names `KATALOG_VHOSTS` and `KATALOG_SERVICES` and automatically adds them to its service and virtual host catalog. It also generates an nginx reversed proxy config for all virtual hosts.
 
 ## Usage
 
@@ -24,21 +24,21 @@ docker run -d -v /var/run/docker.sock:/var/run/docker.sock -v `pwd`/data:/app/da
 
 **TIP:** Use this in conjunction with `joakimbeng/nginx-site-watcher` and mount the `/app/nginx` volume above to `/etc/nginx/sites-enabled` in the nginx container.
 
-### `VHOSTNAME`
+### `KATALOG_VHOSTS`
 
 Format: `<hostname>[:<port>][,<hostname2>[:<port>]...]`.
 
-Example: `VHOSTNAME=my-domain.com,*.my-other-domain.com,nodedev.example.com:3000`
+Example: `KATALOG_VHOSTS=my-domain.com,*.my-other-domain.com,nodedev.example.com:3000`
 
 
 What is this useful for? See `/nginx` endpoint in the API below.
 
 
-### `SERVICES`
+### `KATALOG_SERVICES`
 
 Format: `<service>[:<port>][,<service2>[:<port>]...]`.
 
-Example: `SERVICES=mysql:3306,node-api:3000`
+Example: `KATALOG_SERVICES=mysql:3306,node-api:3000`
 
 
 Having the environment variable set as above would fill the service catalog with two services: `mysql` and `node-api` which both will point to their container's IP and their respective ports.
@@ -50,7 +50,7 @@ To get information about existing services see `/service` enpoint in the API bel
 
 ### `GET /nginx`
 
-Outputs an Nginx configuration file with reverse proxy configurations for the catalog's virtual hosts, according to each container's `VHOSTNAME` environment variable.
+Outputs an Nginx configuration file with reverse proxy configurations for the catalog's virtual hosts, according to each container's `KATALOG_VHOSTS` environment variable.
 
 ### `GET /value`
 
