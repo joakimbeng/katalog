@@ -52,11 +52,20 @@ function getTemplateData () {
 
   var data = {vhosts: []};
 
-  data.vhosts = Object.keys(vhosts).map(function (slug) {
-    return {slug: slug, host: vhosts[slug][0].name, servers: vhosts[slug]};
-  });
+  data.defaultServer = vhosts['default'] ? toTemplateServer('default', vhosts['default']) : null;
+
+  data.vhosts = Object.keys(vhosts)
+    .filter(function (slug) {
+      return slug !== 'default';
+    }).map(function (slug) {
+      return toTemplateServer(slug, vhosts[slug]);
+    });
 
   return data;
+}
+
+function toTemplateServer (slug, vhost) {
+  return {slug: slug, host: vhost[0].name, servers: vhost};
 }
 
 function getTemplate (cb) {

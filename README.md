@@ -31,7 +31,7 @@ Format: `<hostname>[:<port>][,<hostname2>[:<port>]...]`.
 Example: `KATALOG_VHOSTS=my-domain.com,*.my-other-domain.com,nodedev.example.com:3000`
 
 
-What is this useful for? See `/nginx` endpoint in the API below.
+What is this useful for? See `/nginx` endpoint in the API below. The hostname `"default"` is a special one, and if specified for a container that container will be used as the default server fallback when no other virtual host is matching.
 
 
 ### `KATALOG_SERVICES`
