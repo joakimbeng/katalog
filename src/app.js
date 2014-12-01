@@ -5,6 +5,7 @@ var bodyParser = require('body-parser');
 var storage = require('./storage');
 var slug = require('./slug');
 var nginx = require('./nginx');
+var docker = require('./docker');
 var env = process.env.NODE_ENV || 'development';
 var app = express();
 
@@ -143,6 +144,11 @@ app.get('/nginx', function (req, res) {
     }
     return res.status(200).send(config);
   });
+});
+
+app.put('/refresh', function (req, res) {
+  docker.refresh();
+  res.status(204).send();
 });
 
 module.exports = exports = app;
