@@ -3,7 +3,9 @@ var app = require('./src/app');
 var docker = require('./src/docker');
 var pkg = require('./package');
 
-docker.start();
+docker.start(function () {
+  docker.refresh();
+});
 
 var server = http.createServer(app);
 

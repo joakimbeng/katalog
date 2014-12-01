@@ -71,7 +71,8 @@ app.post('/service', function (req, res) {
     ip: ip,
     id: id,
     version: body.version,
-    port: body.port
+    port: body.port,
+    manual: true
   };
   storage.addService(data);
   res.status(200).send(data);
@@ -120,7 +121,8 @@ app.post('/vhost', function (req, res) {
     id: id,
     slug: slugName,
     version: body.version,
-    port: body.port
+    port: body.port,
+    manual: true
   };
   storage.addVhost(data);
   res.status(200).send(data);

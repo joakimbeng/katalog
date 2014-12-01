@@ -16,35 +16,48 @@ exports.start = function start (cb) {
       return cb && cb(err);
     }
     emitter.start();
-    return cb && cb();
+    emitter.on('connect', function () {
+      log('Connected');
+      cb && cb();
+    });
+    emitter.on('error', function (err) {
+      error(err);
+      cb && cb(err);
+    });
   });
 };
 
-emitter.on('connect', function () {
-  log('Connected');
-});
+exports.refresh = function refresh (cb) {
+  storage.removeImages();
+  docker.listContainers(function (err, containers) {
+    containers.forEach(function (info) {
+      var msg = {id: info.Id, status: 'start'};
+      syncContainer(msg);
+    });
+  });
+};
 
 emitter.on("start", function(message) {
   log("container started:", message);
-  syncContainers(message);
+  syncContainer(message);
 });
 
 emitter.on("stop", function(message) {
   log("container stopped:", message);
-  syncContainers(message);
+  syncContainer(message);
 });
 
 emitter.on("die", function(message) {
   log("container died:", message);
-  syncContainers(message);
+  syncContainer(message);
 });
 
 emitter.on("destroy", function(message) {
   log("container destroyed:", message);
-  syncContainers(message);
+  syncContainer(message);
 });
 
-function syncContainers (message) {
+function syncContainer (message) {
   if (message.status !== 'start') {
     storage.removeImage(message.id);
     return;

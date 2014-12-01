@@ -27,7 +27,9 @@ exports.addVhost = function addVhost (host) {
   if (!storage.vhosts[host.slug]) {
     storage.vhosts[host.slug] = [];
   }
-  storage.vhosts[host.slug].push(host);
+  if (!containerInArray(storage.vhosts[host.name], host.id)) {
+    storage.vhosts[host.slug].push(host);
+  }
   exports.persist();
 };
 
@@ -38,7 +40,9 @@ exports.addService = function addService (service) {
   if (!storage.services[service.name]) {
     storage.services[service.name] = [];
   }
-  storage.services[service.name].push(service);
+  if (!containerInArray(storage.services[service.name], service.id)) {
+    storage.services[service.name].push(service);
+  }
   exports.persist();
 };
 
@@ -88,14 +92,26 @@ function getMaxVersion (services) {
   }, null);
 }
 
+exports.removeImages = function removeNonManualImages () {
+  removeImages(function (container) {
+    return !container.manual;
+  });
+};
+
 exports.removeImage = function removeImage (id) {
+  removeImages(function (container) {
+    return container.id === id;
+  });
+};
+
+function removeImages (filter) {
   if (storage.services) {
     Object.keys(storage.services).forEach(function (name) {
       if (!storage.services[name]) {
         return;
       }
       for (var i = 0; i < storage.services[name].length; i++) {
-        if (storage.services[name][i].id === id) {
+        if (filter(storage.services[name][i])) {
           storage.services[name].splice(i, 1);
         }
       }
@@ -110,7 +126,7 @@ exports.removeImage = function removeImage (id) {
         return;
       }
       for (var i = 0; i < storage.vhosts[name].length; i++) {
-        if (storage.vhosts[name][i].id === id) {
+        if (filter(storage.vhosts[name][i])) {
           storage.vhosts[name].splice(i, 1);
         }
       }
@@ -120,7 +136,7 @@ exports.removeImage = function removeImage (id) {
     });
   }
   exports.persist();
-};
+}
 
 exports.save = function save (storage, cb) {
   var data = JSON.stringify(storage || {});
@@ -194,4 +210,10 @@ function log () {
   var args = Array.prototype.slice.call(arguments);
   args.unshift('[storage]');
   console.log.apply(console, args);
+}
+
+function containerInArray (arr, containerId) {
+  return (arr || []).some(function (container) {
+    return container.id === containerId;
+  });
 }
