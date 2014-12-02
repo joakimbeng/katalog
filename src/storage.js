@@ -1,3 +1,5 @@
+/* jshint node:true */
+'use strict';
 var fs = require('fs');
 var path = require('path');
 var util = require('util');
@@ -27,8 +29,11 @@ exports.addVhost = function addVhost (host) {
   if (!storage.vhosts[host.slug]) {
     storage.vhosts[host.slug] = [];
   }
-  if (!containerInArray(storage.vhosts[host.name], host.id)) {
+  var i = containerIndexInArray(storage.vhosts[host.name], host.id);
+  if (i < 0) {
     storage.vhosts[host.slug].push(host);
+  } else {
+    storage.vhosts[host.slug][i] = host;
   }
   exports.persist();
 };
@@ -40,8 +45,11 @@ exports.addService = function addService (service) {
   if (!storage.services[service.name]) {
     storage.services[service.name] = [];
   }
-  if (!containerInArray(storage.services[service.name], service.id)) {
+  var i = containerIndexInArray(storage.services[service.name], service.id);
+  if (i < 0) {
     storage.services[service.name].push(service);
+  } else {
+    storage.services[service.name][i] = service;
   }
   exports.persist();
 };
@@ -212,8 +220,14 @@ function log () {
   console.log.apply(console, args);
 }
 
-function containerInArray (arr, containerId) {
-  return (arr || []).some(function (container) {
-    return container.id === containerId;
-  });
+function containerIndexInArray (arr, containerId) {
+  if (!arr || !arr.length) {
+    return -1;
+  }
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i].id === containerId) {
+      return i;
+    }
+  }
+  return -1;
 }
