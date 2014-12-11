@@ -1,28 +1,30 @@
+'use strict';
 var mustache = require('mustache');
 var fs = require('fs');
 var path = require('path');
 var storage = require('./storage');
+var logger = require('./logger')('nginx');
 
-var timeoutId = null
+var timeoutId = null;
 
 storage.onPersist(function () {
   if (timeoutId) {
     clearTimeout(timeoutId);
   }
-  log('About to save site config...');
+  logger.log('About to save site config...');
   timeoutId = setTimeout(function () {
     timeoutId = null;
     save(path.join(__dirname, '..', 'nginx', process.env.SITE_NAME || 'default-site'), function (err) {
       if (err) {
-        error(err);
+        logger.error(err);
       } else {
-        log('Site config saved');
+        logger.log('Site config saved');
       }
     });
   }, 1000 * (process.env.SITE_SAVE_DELAY || 10));
 });
 
-exports.render = function render (cb) {
+exports.render = function render (cb) {
   return renderConfig(cb);
 };
 
@@ -69,22 +71,10 @@ function toTemplateServer (slug, vhost) {
 }
 
 function getTemplate (cb) {
-  fs.readFile(path.join(__dirname, '..', 'tpl', 'nginx.mustache'), 'utf8', function (err, content) {
+  fs.readFile(path.join(__dirname, '..', 'tpl', 'nginx.mustache'), 'utf8', function (err, content) {
     if (err) {
       return cb(err);
     }
     return cb(null, content);
   });
-}
-
-function log () {
-  var args = Array.prototype.slice.call(arguments);
-  args.unshift('[nginx]');
-  console.log.apply(console, args);
-}
-
-function error () {
-  var args = Array.prototype.slice.call(arguments);
-  args.unshift('[nginx]');
-  console.error.apply(console, args);
 }

@@ -1,22 +1,23 @@
+'use strict';
 var express = require('express');
-var path = require('path');
 var morgan = require('morgan');
 var bodyParser = require('body-parser');
 var storage = require('./storage');
 var slug = require('./slug');
 var nginx = require('./nginx');
 var docker = require('./docker');
+var logger = require('./logger')('app');
 var env = process.env.NODE_ENV || 'development';
 var app = express();
 
 app.use(bodyParser.json({strict: false}));
 app.use(morgan('development' === env ? 'dev' : 'combined'));
 
-app.use(function (req, res, next) {
+app.use(function (req, res, next) {
   var ip = getIp(req);
   // Only allow LAN, Localhost and Docker
   if (!/^(192\.168\.|127\.0\.0\.1|172\.1[67]\.)/.test(ip)) {
-    log('Blocked: ' + ip);
+    logger.log('Blocked: ' + ip);
     return res.status(403).send();
   }
   next();
@@ -53,24 +54,17 @@ app.get('/service/:name', function (req, res) {
 
 app.post('/service', function (req, res) {
   var body = req.body;
-  if (!body.name) {
-    return res.status(400).send({message: 'Missing `name`!'});
+  body.ip = getOverridableIp(req);
+  try {
+    verifyFields(body, ['name', 'port', 'ip', 'version']);
+  } catch (e) {
+    return res.status(400).send({message: e.message});
   }
-  if (!body.port) {
-    return res.status(400).send({message: 'Missing `port`!'});
-  }
-  var ip = body.ip || getIp(req);
-  if (!ip) {
-    return res.status(400).send({message: 'Missing `ip`!'});
-  }
-  if (!body.version) {
-    return res.status(400).send({message: 'Missing `version`!'});
-  }
-  var id = body.id || (ip + '_' + body.name + '_' + body.port + '_' + body.version);
+  body.slug = body.name;
   var data = {
     name: body.name,
-    ip: ip,
-    id: id,
+    ip: body.ip,
+    id: getId(body),
     version: body.version,
     port: body.port,
     manual: true
@@ -101,26 +95,18 @@ app.get('/service', function (req, res) {
 
 app.post('/vhost', function (req, res) {
   var body = req.body;
-  if (!body.name) {
-    return res.status(400).send({message: 'Missing `name`!'});
+  body.ip = getOverridableIp(req);
+  try {
+    verifyFields(body, ['name', 'port', 'ip', 'version']);
+  } catch (e) {
+    return res.status(400).send({message: e.message});
   }
-  if (!body.port) {
-    return res.status(400).send({message: 'Missing `port`!'});
-  }
-  var ip = body.ip || getIp(req);
-  if (!ip) {
-    return res.status(400).send({message: 'Missing `ip`!'});
-  }
-  if (!body.version) {
-    return res.status(400).send({message: 'Missing `version`!'});
-  }
-  var slugName = slug(body.name);
-  var id = body.id || (ip + '_' + slugName + '_' + body.port + '_' + body.version);
+  body.slug = slug(body.name);
   var data = {
     name: body.name,
-    ip: ip,
-    id: id,
-    slug: slugName,
+    ip: body.ip,
+    id: getId(body),
+    slug: body.slug,
     version: body.version,
     port: body.port,
     manual: true
@@ -153,12 +139,23 @@ app.put('/refresh', function (req, res) {
 
 module.exports = exports = app;
 
-function getIp(req){
-  return req.connection.remoteAddress;
+function verifyFields (body, fields) {
+  for (var i = 0; i < fields.length; i++) {
+    if (!body[fields[i]]) {
+      throw new Error('Missing `' + fields[i] + '`!');
+    }
+  }
 }
 
-function log () {
-  var args = Array.prototype.slice.call(arguments);
-  args.unshift('[app]');
-  console.log.apply(console, args);
+function getId (ip, body) {
+  var id = body.id || (body.ip + '_' + body.slug + '_' + body.port + '_' + body.version);
+  return id;
+}
+
+function getOverridableIp (req) {
+  return req.body.ip || getIp(req);
+}
+
+function getIp(req){
+  return req.connection.remoteAddress;
 }

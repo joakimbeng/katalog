@@ -1,8 +1,9 @@
+'use strict';
 var Docker = require('dockerode');
 var DockerEvents = require('docker-events');
-var util = require('util');
 var storage = require('./storage');
 var slug = require('./slug');
+var logger = require('./logger')('docker');
 
 var docker = new Docker({
   socketPath: '/var/run/docker.sock'
@@ -17,11 +18,11 @@ exports.start = function start (cb) {
     }
     emitter.start();
     emitter.on('connect', function () {
-      log('Connected');
+      logger.log('Connected');
       cb && cb();
     });
     emitter.on('error', function (err) {
-      error(err);
+      logger.error(err);
       cb && cb(err);
     });
   });
@@ -30,30 +31,34 @@ exports.start = function start (cb) {
 exports.refresh = function refresh (cb) {
   storage.removeImages();
   docker.listContainers(function (err, containers) {
+    if (err) {
+      return cb && cb(err);
+    }
     containers.forEach(function (info) {
       var msg = {id: info.Id, status: 'start'};
       syncContainer(msg);
     });
+    cb && cb();
   });
 };
 
-emitter.on("start", function(message) {
-  log("container started:", message);
+emitter.on('start', function(message) {
+  logger.log('container started:', message);
   syncContainer(message);
 });
 
-emitter.on("stop", function(message) {
-  log("container stopped:", message);
+emitter.on('stop', function(message) {
+  logger.log('container stopped:', message);
   syncContainer(message);
 });
 
-emitter.on("die", function(message) {
-  log("container died:", message);
+emitter.on('die', function(message) {
+  logger.log('container died:', message);
   syncContainer(message);
 });
 
-emitter.on("destroy", function(message) {
-  log("container destroyed:", message);
+emitter.on('destroy', function(message) {
+  logger.log('container destroyed:', message);
   syncContainer(message);
 });
 
@@ -66,58 +71,72 @@ function syncContainer (message) {
 
   container.inspect(function (err, data) {
     if (err) {
-      return error(err);
+      return logger.error(err);
     }
 
-    var defaultPort = getDefaultPort(data.Config.ExposedPorts);
-    var ip = data.NetworkSettings.IPAddress;
-    var env = arrayToObject(parseEnvVars(data.Config.Env));
-    var nameParts = data.Config.Image.split(':');
-    var name = nameParts[0];
-    var version = fixVersion(nameParts[1]) || 'latest';
+    var config = getConfig(message, data);
 
-    var hosts = (env.KATALOG_VHOSTS || []);
-    if (data.Config.Hostname && data.Config.Domainname) {
-      hosts.push({name: data.Config.Hostname + '.' + data.Config.Domainname});
-    }
-    hosts = hosts.map(function (host) {
-      host.id = message.id;
-      host.slug = slug(host.name);
-      host.image = name;
-      host.version = version;
-      host.ip = ip;
-      host.port = host.port || defaultPort;
-      return host;
-    });
+    var hosts = getHosts(config);
 
-    var services = (env.KATALOG_SERVICES || []);
-    services = services.map(function (service) {
-      service.id = message.id;
-      service.image = name;
-      service.version = version;
-      service.ip = ip;
-      service.port = service.port || defaultPort;
-      return service;
-    });
+    var services = getServices(config);
 
-    for (var i = 0; i < hosts.length; i++) {
+    var i;
+    for (i = 0; i < hosts.length; i++) {
       storage.addVhost(hosts[i]);
     }
-    for (var i = 0; i < services.length; i++) {
+    for (i = 0; i < services.length; i++) {
       storage.addService(services[i]);
     }
 
   });
 }
 
-function indexBy (arr, prop) {
-  var result = {};
-  for (var i = 0; i < arr.length; i++) {
-    if (!result[arr[i][prop]]) {
-      result[arr[i][prop]] = arr[i];
-    }
+function getConfig (message, data) {
+  var nameParts = data.Config.Image.split(':');
+  var name = nameParts[0];
+  var version = fixVersion(nameParts[1]) || 'latest';
+  var env = arrayToObject(parseEnvVars(data.Config.Env));
+
+  return {
+    id: message.id,
+    ip: data.NetworkSettings.IPAddress,
+    name: name,
+    version: version,
+    env: env,
+    hostname: data.Config.Hostname,
+    domainname: data.Config.Domainname,
+    defaultPort: getDefaultPort(data.Config.ExposedPorts)
+  };
+}
+
+function getHosts (config) {
+  var hosts = (config.env.KATALOG_VHOSTS || []);
+  if (config.hostname && config.domainname) {
+    hosts.push({name: config.hostname + '.' + config.domainname});
   }
-  return result;
+  hosts = hosts.map(function (host) {
+    host.id = config.id;
+    host.slug = slug(host.name);
+    host.image = config.name;
+    host.version = config.version;
+    host.ip = config.ip;
+    host.port = host.port || config.defaultPort;
+    return host;
+  });
+  return hosts;
+}
+
+function getServices (config) {
+  var services = (config.env.KATALOG_SERVICES || []);
+  services = services.map(function (service) {
+    service.id = config.id;
+    service.image = config.name;
+    service.version = config.version;
+    service.ip = config.ip;
+    service.port = service.port || config.defaultPort;
+    return service;
+  });
+  return services;
 }
 
 function getDefaultPort (exposedPorts) {
@@ -157,17 +176,5 @@ function fixVersion (version) {
     return;
   }
   var withoutDots = version.replace(/\./g, '');
-  return version + Array(3 - (version.length - withoutDots.length)).join('.0');
-}
-
-function log () {
-  var args = Array.prototype.slice.call(arguments);
-  args.unshift('[docker]');
-  console.log.apply(console, args);
-}
-
-function error () {
-  var args = Array.prototype.slice.call(arguments);
-  args.unshift('[docker]');
-  console.error.apply(console, args);
+  return version + new Array(3 - (version.length - withoutDots.length)).join('.0');
 }
