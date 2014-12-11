@@ -29,7 +29,7 @@ exports.addVhost = function addVhost (host) {
   if (!storage.vhosts[host.slug]) {
     storage.vhosts[host.slug] = [];
   }
-  var i = containerIndexInArray(storage.vhosts[host.name], host.id);
+  var i = containerIndexInArray(storage.vhosts[host.slug], host.id);
   if (i < 0) {
     storage.vhosts[host.slug].push(host);
   } else {
