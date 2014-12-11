@@ -200,6 +200,7 @@ exports.load = function load (cb) {
       try {
         data = JSON.parse(data || '{}');
       } catch (e) {
+        data = {};
       }
       cb(null, data);
     });
