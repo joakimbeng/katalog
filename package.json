@@ -1,6 +1,6 @@
 {
   "name": "katalog",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "A service catalog and discovery application for use with Docker containers",
   "main": "index.js",
   "dependencies": {
