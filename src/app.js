@@ -147,7 +147,7 @@ function verifyFields (body, fields) {
   }
 }
 
-function getId (ip, body) {
+function getId (body) {
   var id = body.id || (body.ip + '_' + body.slug + '_' + body.port + '_' + body.version);
   return id;
 }
