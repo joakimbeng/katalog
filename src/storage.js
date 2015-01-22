@@ -19,7 +19,7 @@ exports.setValue = function setValue (key, value) {
     storage.keys = {};
   }
   storage.keys[key] = value;
-  exports.persist();
+  exports.persist({reason: 'SET_VALUE'});
 };
 
 exports.addVhost = function addVhost (host) {
@@ -35,7 +35,7 @@ exports.addVhost = function addVhost (host) {
   } else {
     storage.vhosts[host.slug][i] = host;
   }
-  exports.persist();
+  exports.persist({reason: 'ADD_VHOST'});
 };
 
 exports.addService = function addService (service) {
@@ -51,7 +51,7 @@ exports.addService = function addService (service) {
   } else {
     storage.services[service.name][i] = service;
   }
-  exports.persist();
+  exports.persist({reason: 'ADD_SERVICE'});
 };
 
 exports.getValue = function getValue (key) {
@@ -119,11 +119,15 @@ exports.removeImage = function removeImage (id) {
 };
 
 function removeImages (filter) {
-  var hasChanged = false;
-  hasChanged = removeServices(filter) || hasChanged;
-  hasChanged = removeVhosts(filter) || hasChanged;
-  if (hasChanged) {
-    exports.persist();
+  var reasons = [];
+  if (removeServices(filter)) {
+    reasons.push('REMOVE_SERVICE');
+  }
+  if (removeVhosts(filter)) {
+    reasons.push('REMOVE_VHOSTS');
+  }
+  if (reasons.length) {
+    exports.persist({reason: reasons.join(',')});
   }
 }
 
@@ -211,10 +215,10 @@ exports.onPersist = function onPersist (listener) {
   listeners.persist.push(listener);
 };
 
-exports.persist = function persist (cb) {
+exports.persist = function persist (data, cb) {
   printStorage();
 
-  trigger('persist');
+  trigger('persist', data);
 
   exports.save(storage, function (err) {
     if (err) {
@@ -245,10 +249,10 @@ function toJsonString (data) {
   return JSON.stringify(data);
 }
 
-function trigger (evt) {
+function trigger (evt, data) {
   listeners[evt].forEach(function (listener) {
     setTimeout(function () {
-      listener();
+      listener(data);
     }, 0);
   });
 }

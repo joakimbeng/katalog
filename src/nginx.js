@@ -7,11 +7,20 @@ var logger = require('./logger')('nginx');
 
 var timeoutId = null;
 
-storage.onPersist(function () {
+storage.onPersist(function (data) {
+  if (!data || !data.reason || data.reason.indexOf('VHOST') < 0) {
+    logger.log('Site config not saved since unrelated event.');
+    return;
+  }
+
+  var delay = data.reason.indexOf('REMOVE') > -1 ? 0 : 30;
+
   if (timeoutId) {
     clearTimeout(timeoutId);
   }
-  logger.log('About to save site config...');
+
+  logger.log('About to save site config in ' + delay + ' seconds...');
+
   timeoutId = setTimeout(function () {
     timeoutId = null;
     save(path.join(__dirname, '..', 'nginx', process.env.SITE_NAME || 'default-site'), function (err) {
@@ -21,7 +30,7 @@ storage.onPersist(function () {
         logger.log('Site config saved');
       }
     });
-  }, 1000 * (process.env.SITE_SAVE_DELAY || 10));
+  }, 1000 * delay);
 });
 
 exports.render = function render (cb) {
