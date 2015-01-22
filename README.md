@@ -142,3 +142,4 @@ Will yield a json object as response with the property `id`, that value is used 
 Parameter: `id`
 
 Used to manually remove a service from the catalog. Id should be the same as the one in the response when adding the service.
+
