@@ -63,20 +63,86 @@ function getTemplateData () {
 
   var data = {vhosts: []};
 
-  data.defaultServer = vhosts['default'] ? toTemplateServer('default', vhosts['default']) : null;
+  var defaultServers = vhosts['default'] || null;
 
-  data.vhosts = Object.keys(vhosts)
+  var otherServers = Object.keys(vhosts)
     .filter(function (slug) {
       return slug !== 'default';
-    }).map(function (slug) {
-      return toTemplateServer(slug, vhosts[slug]);
-    });
+    })
+    .reduce(function (arr, slug) {
+      arr.push.apply(arr, vhosts[slug]);
+      return arr;
+    }, []);
+
+  data.defaultServer = defaultServers ? transformServersForTemplate(defaultServers) : null;
+
+  data.vhosts = transformServersForTemplate(otherServers);
 
   return data;
 }
+/**
+ * Transforming this:
+ *
+ * [
+ *   {slug: 'my_domain_com_example', path: '/example', name: 'my-domain.com', ip: '127.0.0.1', port: 80}
+ * ]
+ *
+ * into this:
+ *
+ * [
+ *   {
+ *     host: 'my-domain.com',
+ *     paths: [
+ *       {
+ *         path: '/example/',
+ *         slug: 'my_domain_com_example',
+ *         servers: [
+ *           {ip: '127.0.0.1', port: 80}
+ *         ]
+ *       }
+ *     ]
+ *   }
+ * ]
+ */
+function transformServersForTemplate (servers) {
+  var transformed = {};
 
-function toTemplateServer (slug, vhost) {
-  return {slug: slug, host: vhost[0].name, servers: vhost};
+  servers.forEach(function (server) {
+    if (!transformed[server.name]) {
+      transformed[server.name] = {host: server.name, paths: {}};
+    }
+    if (!transformed[server.name].paths[server.path]) {
+      transformed[server.name].paths[server.path] = {slug: server.slug, path: fixPath(server.path), servers: []};
+    }
+    transformed[server.name].paths[server.path].servers.push({ip: server.ip, port: server.port});
+  });
+
+  // Transform back to arrays:
+  var templateData = Object.keys(transformed).map(function (name) {
+    var vhost = transformed[name];
+    vhost.paths = Object.keys(vhost.paths).map(function (path) {
+      return vhost.paths[path];
+    });
+    return vhost;
+  });
+
+  return templateData;
+}
+
+/**
+ * Prepends and appends a path with slashes
+ */
+function fixPath (path) {
+  if (!path || path.length === 0) {
+    return '/';
+  }
+  if (path[0] !== '/') {
+    path = '/' + path;
+  }
+  if (path[path.length - 1] !== '/') {
+    path = path + '/';
+  }
+  return path;
 }
 
 function getTemplate (cb) {

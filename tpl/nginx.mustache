@@ -6,8 +6,10 @@ server {
   access_log /proc/self/fd/1;
 {{#defaultServer}}
   proxy_buffering off;
-  location / {
-    proxy_pass http://default_host;
+
+  {{#paths}}
+  location {{{path}}} {
+    proxy_pass http://default_host_{{slug}};
     include /etc/nginx/proxy_params;
 
     # HTTP 1.1 support
@@ -23,6 +25,7 @@ server {
     proxy_read_timeout     600;
     send_timeout           600;
   }
+  {{/paths}}
 {{/defaultServer}}
 {{^defaultServer}}
   return 503;
@@ -30,19 +33,23 @@ server {
 }
 
 {{#defaultServer}}
-upstream default_host {
+{{#paths}}
+upstream default_host_{{slug}} {
   {{#servers}}
     server {{ip}}:{{port}};
   {{/servers}}
 }
+{{/paths}}
 {{/defaultServer}}
 
 {{#vhosts}}
+{{#paths}}
 upstream {{slug}} {
   {{#servers}}
     server {{ip}}:{{port}};
   {{/servers}}
 }
+{{/paths}}
 
 server {
   server_tokens off;
@@ -51,7 +58,8 @@ server {
   error_log /proc/self/fd/2;
   access_log /proc/self/fd/1;
 
-  location / {
+  {{#paths}}
+  location {{{path}}} {
     proxy_pass http://{{slug}};
     include /etc/nginx/proxy_params;
 
@@ -68,5 +76,6 @@ server {
     proxy_read_timeout     600;
     send_timeout           600;
   }
+  {{/paths}}
 }
 {{/vhosts}}

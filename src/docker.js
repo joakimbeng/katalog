@@ -116,7 +116,10 @@ function getHosts (config) {
   }
   hosts = hosts.map(function (host) {
     host.id = config.id;
-    host.slug = slug(host.name);
+    host.slug = slug(host.name); // Slug for full URL
+    var pathParts = host.name.split('/');
+    host.path = '/' + pathParts.slice(1).join('/'); // Only path part
+    host.name = pathParts[0]; // Only domain part
     host.image = config.name;
     host.version = config.version;
     host.ip = config.ip;

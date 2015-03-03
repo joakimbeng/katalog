@@ -26,9 +26,9 @@ docker run -d -v /var/run/docker.sock:/var/run/docker.sock -v `pwd`/data:/app/da
 
 ### `KATALOG_VHOSTS`
 
-Format: `<hostname>[:<port>][,<hostname2>[:<port>]...]`.
+Format: `<hostname>[/<path>][:<port>][,<hostname2>[/<path>][:<port>]...]`.
 
-Example: `KATALOG_VHOSTS=my-domain.com,*.my-other-domain.com,nodedev.example.com:3000,192.168.1.10:80`
+Example: `KATALOG_VHOSTS=my-domain.com,other.com/folder,*.my-other-domain.com,nodedev.example.com:3000,192.168.1.10:80`
 
 
 What is this useful for? See `/nginx` endpoint in the API below. The hostname `"default"` is a special one, and if specified for a container that container will be used as the default server fallback when no other virtual host is matching.
