@@ -9,7 +9,7 @@ server {
 
   {{#paths}}
   location {{{path}}} {
-    proxy_pass http://default_host_{{slug}};
+    proxy_pass http://default_host_{{slug}}/;
     include /etc/nginx/proxy_params;
 
     # HTTP 1.1 support
