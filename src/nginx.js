@@ -63,20 +63,21 @@ function getTemplateData () {
 
   var data = {vhosts: []};
 
-  var defaultServers = vhosts['default'] || null;
-
-  var otherServers = Object.keys(vhosts)
-    .filter(function (slug) {
-      return slug !== 'default';
-    })
+  var servers = Object.keys(vhosts)
     .reduce(function (arr, slug) {
       arr.push.apply(arr, vhosts[slug]);
       return arr;
     }, []);
 
-  data.defaultServer = defaultServers ? transformServersForTemplate(defaultServers) : null;
+  var hostsForTemplate = transformServersForTemplate(servers);
 
-  data.vhosts = transformServersForTemplate(otherServers);
+  data.vhosts = hostsForTemplate.filter(function (vhost) {
+    return vhost.host !== 'default';
+  });
+
+  data.defaultServer = hostsForTemplate.filter(function (vhost) {
+    return vhost.host === 'default';
+  })[0];
 
   return data;
 }
