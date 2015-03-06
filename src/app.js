@@ -16,7 +16,7 @@ app.use(morgan('development' === env ? 'dev' : 'combined'));
 app.use(function (req, res, next) {
   var ip = getIp(req);
   // Only allow LAN, Localhost and Docker
-  if (!/^(192\.168\.|127\.0\.0\.1|172\.1[67]\.)/.test(ip)) {
+  if (!/^(::ffff:)?(192\.168\.|127\.0\.0\.1|172\.1[67]\.)/.test(ip)) {
     logger.log('Blocked: ' + ip);
     return res.status(403).send();
   }
