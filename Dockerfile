@@ -1,4 +1,4 @@
-FROM dockerfile/nodejs
+FROM node
 
 WORKDIR /app
 
@@ -6,9 +6,7 @@ ADD package.json /app/package.json
 
 RUN npm install --production
 
-ADD src /app/src
-ADD tpl /app/tpl
-ADD index.js /app/index.js
+ADD . /app
 
 ENV PORT 5005
 
