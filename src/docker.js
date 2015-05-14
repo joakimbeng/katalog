@@ -95,7 +95,7 @@ function getConfig (message, data) {
   var nameParts = data.Config.Image.split(':');
   var name = nameParts[0];
   var version = fixVersion(nameParts[1]) || 'latest';
-  var env = arrayToObject(parseEnvVars(data.Config.Env));
+  var env = data.Config.Env ? arrayToObject(parseEnvVars(data.Config.Env)) : {};
 
   return {
     id: message.id,
@@ -157,7 +157,7 @@ function getDefaultPort (exposedPorts) {
 function parseEnvVars (env) {
   return env.map(function (e) {
     var parts = e.split('=');
-    var values = parts[1].split(',').map(getNameAndPort);
+    var values = parts[1] ? parts[1].split(',').map(getNameAndPort) : null;
     return {key: parts[0], values: values};
   });
 }
