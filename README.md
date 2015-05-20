@@ -19,7 +19,7 @@ docker pull joakimbeng/katalog
 **Run**:
 
 ```bash
-docker run -d -v /var/run/docker.sock:/var/run/docker.sock -v `pwd`/data:/app/data -v `pwd`/nginx:/app/nginx -p 5005:5005 joakimbeng/katalog
+docker run -d --privileged -v /var/run/docker.sock:/var/run/docker.sock -v `pwd`/data:/app/data -v `pwd`/nginx:/app/nginx -p 5005:5005 joakimbeng/katalog
 ```
 
 **TIP:** Use this in conjunction with `joakimbeng/nginx-site-watcher` and mount the `/app/nginx` volume above to `/etc/nginx/sites-enabled` in the nginx container.
@@ -47,6 +47,8 @@ To get information about existing services see `/service` enpoint in the API bel
 
 
 ## API
+
+**Note** each endpoint takes an optional query parameter `?pretty` and if provided the JSON response is idented and more readable.
 
 ### `GET /nginx`
 

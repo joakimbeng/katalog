@@ -18,38 +18,53 @@ app.use(function (req, res, next) {
   // Only allow LAN, Localhost and Docker
   if (!/^(::ffff:)?(192\.168\.|127\.0\.0\.1|172\.1[67]\.)/.test(ip)) {
     logger.log('Blocked: ' + ip);
-    return res.status(403).send();
+    return res.sendStatus(403);
   }
+  next();
+});
+
+app.use(function (req, res, next) {
+  // Adding `sendJson` function to response
+  // with the ability to pretty-print the json data
+  // if query param `pretty` is provided
+  var pretty = typeof req.query.pretty !== 'undefined';
+  res.sendJson = function sendJson (status, json) {
+    if (json) {
+      res.status(status).send(JSON.stringify(json, null, pretty ? 2 : null));
+    } else {
+      res.sendStatus(status);
+    }
+  };
   next();
 });
 
 app.set('port', process.env.PORT || 5005);
 
 app.get('/value', function (req, res) {
-  return res.status(200).send(storage.getValues());
+  return res.sendJson(200, storage.getValues());
 });
 
 app.get('/value/:key', function (req, res) {
   var val = storage.getValue(req.params.key);
   if (typeof val === 'undefined') {
-    return res.status(204).send();
+    return res.sendStatus(204);
   }
-  return res.status(200).send(val);
+  return res.sendJson(200, val);
 });
 
 app.post('/value/:key', function (req, res) {
   var val = req.body;
   storage.setValue(req.params.key, val);
-  return res.status(204).send();
+  return res.sendStatus(204);
 });
 
 app.get('/service/:name', function (req, res) {
   var services = storage.getServices(req.query.all);
   var name = req.params.name;
   if (!services || !services[name]) {
-    return res.status(404).send();
+    return res.sendStatus(404);
   }
-  return res.status(200).send(services[name]);
+  return res.sendJson(200, services[name]);
 });
 
 app.post('/service', function (req, res) {
@@ -58,7 +73,7 @@ app.post('/service', function (req, res) {
   try {
     verifyFields(body, ['name', 'port', 'ip', 'version']);
   } catch (e) {
-    return res.status(400).send({message: e.message});
+    return res.sendJson(400, {message: e.message});
   }
   body.slug = body.name;
   var data = {
@@ -70,27 +85,27 @@ app.post('/service', function (req, res) {
     manual: true
   };
   storage.addService(data);
-  res.status(200).send(data);
+  res.sendJson(200, data);
 });
 
 app.delete('/service/:id', function (req, res) {
   var id = req.params.id;
   storage.removeImage(id);
-  res.status(204).send();
+  res.sendStatus(204);
 });
 
 app.delete('/vhost/:id', function (req, res) {
   var id = req.params.id;
   storage.removeImage(id);
-  res.status(204).send();
+  res.sendStatus(204);
 });
 
 app.get('/service', function (req, res) {
   var services = storage.getServices(req.query.all);
   if (!services) {
-    return res.status(404).send();
+    return res.sendStatus(404);
   }
-  return res.status(200).send(services);
+  return res.sendJson(200, services);
 });
 
 app.post('/vhost', function (req, res) {
@@ -99,7 +114,7 @@ app.post('/vhost', function (req, res) {
   try {
     verifyFields(body, ['name', 'port', 'ip', 'version']);
   } catch (e) {
-    return res.status(400).send({message: e.message});
+    return res.sendJson(400, {message: e.message});
   }
   body.slug = slug(body.name);
   var data = {
@@ -112,15 +127,15 @@ app.post('/vhost', function (req, res) {
     manual: true
   };
   storage.addVhost(data);
-  res.status(200).send(data);
+  res.sendJson(200, data);
 });
 
 app.get('/vhost', function (req, res) {
   var vhosts = storage.getVhosts(req.query.all);
   if (!vhosts) {
-    return res.status(404).send();
+    return res.sendStatus(404);
   }
-  return res.status(200).send(vhosts);
+  return res.sendJson(200, vhosts);
 });
 
 app.get('/nginx', function (req, res) {
@@ -128,13 +143,13 @@ app.get('/nginx', function (req, res) {
     if (err) {
       return res.status(500).send(err);
     }
-    return res.status(200).send(config);
+    return res.sendJson(200, config);
   });
 });
 
 app.put('/refresh', function (req, res) {
   docker.refresh();
-  res.status(204).send();
+  res.sendStatus(204);
 });
 
 module.exports = exports = app;
