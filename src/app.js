@@ -30,6 +30,7 @@ app.use(function (req, res, next) {
   var pretty = typeof req.query.pretty !== 'undefined';
   res.sendJson = function sendJson (status, json) {
     if (json) {
+      res.type('json');
       res.status(status).send(JSON.stringify(json, null, pretty ? 2 : null));
     } else {
       res.sendStatus(status);
