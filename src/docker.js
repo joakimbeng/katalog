@@ -96,10 +96,11 @@ function getConfig (message, data) {
   var name = nameParts[0];
   var version = fixVersion(nameParts[1]) || 'latest';
   var env = data.Config.Env ? arrayToObject(parseEnvVars(data.Config.Env)) : {};
+  var firstNet = Object.keys(data.NetworkSettings.Networks)[0]
 
   return {
     id: message.id,
-    ip: data.NetworkSettings.IPAddress,
+    ip: data.NetworkSettings.IPAddress || data.NetworkSettings.Networks[firstNet].IPAddress,
     name: name,
     version: version,
     env: env,
