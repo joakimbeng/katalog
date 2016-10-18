@@ -14,11 +14,13 @@
   },
   "devDependencies": {},
   "scripts": {
-    "test": "NULL"
+    "test": "NULL",
+    "start": "node index.js"
   },
   "keywords": [
     "docker"
   ],
-  "author": "Joakim Carlstein <joakim@klei.se>",
+  "author": "Joakim Carlstein <joakim@beng.se> (http://joakim.beng.se)",
+  "repository": "https://github.com/joakimbeng/katalog",
   "license": "MIT"
 }
