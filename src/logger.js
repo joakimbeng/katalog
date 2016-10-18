@@ -6,14 +6,10 @@ module.exports = exports = function logger (name) {
   };
 };
 
-function log (/* args */) {
-  var args = Array.prototype.slice.call(arguments);
-  args[0] = '[' + args[0] + ']';
-  console.log.apply(console, args);
+function log (name, ...args) {
+  console.log(new Date().toISOString(), `[${name}]`, ...args);
 }
 
-function error () {
-  var args = Array.prototype.slice.call(arguments);
-  args[0] = '[' + args[0] + ']';
-  console.error.apply(console, args);
+function error (name, ...args) {
+  console.error(new Date().toISOString(), `[${name}]`, ...args);
 }
