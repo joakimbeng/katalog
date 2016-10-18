@@ -8,10 +8,11 @@ var nginx = require('./nginx');
 var docker = require('./docker');
 var logger = require('./logger')('app');
 var env = process.env.NODE_ENV || 'development';
+var isDev = env === 'development';
 var app = express();
 
 app.use(bodyParser.json({strict: false}));
-app.use(morgan('development' === env ? 'dev' : 'combined'));
+app.use(morgan(isDev ? 'dev' : 'combined'));
 
 app.use(function (req, res, next) {
   var ip = getIp(req);
@@ -28,13 +29,22 @@ app.use(function (req, res, next) {
   // with the ability to pretty-print the json data
   // if query param `pretty` is provided
   var pretty = typeof req.query.pretty !== 'undefined';
-  res.sendJson = function sendJson (status, json) {
-    if (json) {
-      res.type('json');
-      res.status(status).send(JSON.stringify(json, null, pretty ? 2 : null));
-    } else {
-      res.sendStatus(status);
-    }
+  res.sendJson = function sendJson (status, val) {
+    Promise.resolve(val)
+      .then(json => {
+        if (typeof json === 'string') {
+          res.status(status).send(json);
+        } else if (json) {
+          res.type('json');
+          res.status(status).send(JSON.stringify(json, null, isDev || pretty ? 2 : null));
+        } else {
+          res.sendStatus(status);
+        }
+      })
+      .catch(err => {
+        logger.error(err.stack || err);
+        res.status(err.statusCode || 500).send(isDev ? err : err.message);
+      });
   };
   next();
 });
@@ -42,30 +52,21 @@ app.use(function (req, res, next) {
 app.set('port', process.env.PORT || 5005);
 
 app.get('/value', function (req, res) {
-  return res.sendJson(200, storage.getValues());
+  res.sendJson(200, storage.getValues());
 });
 
 app.get('/value/:key', function (req, res) {
-  var val = storage.getValue(req.params.key);
-  if (typeof val === 'undefined') {
-    return res.sendStatus(204);
-  }
-  return res.sendJson(200, val);
+  res.sendJson(200, storage.getValue(req.params.key));
 });
 
 app.post('/value/:key', function (req, res) {
   var val = req.body;
   storage.setValue(req.params.key, val);
-  return res.sendStatus(204);
+  res.sendStatus(204);
 });
 
 app.get('/service/:name', function (req, res) {
-  var services = storage.getServices(req.query.all);
-  var name = req.params.name;
-  if (!services || !services[name]) {
-    return res.sendStatus(404);
-  }
-  return res.sendJson(200, services[name]);
+  res.sendJson(200, storage.getService(req.params.name, req.query.all));
 });
 
 app.post('/service', function (req, res) {
@@ -89,6 +90,12 @@ app.post('/service', function (req, res) {
   res.sendJson(200, data);
 });
 
+app.delete('/value/:key', function (req, res) {
+  var key = req.params.key;
+  storage.removeValue(key);
+  res.sendStatus(204);
+});
+
 app.delete('/service/:id', function (req, res) {
   var id = req.params.id;
   storage.removeImage(id);
@@ -103,9 +110,6 @@ app.delete('/vhost/:id', function (req, res) {
 
 app.get('/service', function (req, res) {
   var services = storage.getServices(req.query.all);
-  if (!services) {
-    return res.sendStatus(404);
-  }
   return res.sendJson(200, services);
 });
 
@@ -133,24 +137,15 @@ app.post('/vhost', function (req, res) {
 
 app.get('/vhost', function (req, res) {
   var vhosts = storage.getVhosts(req.query.all);
-  if (!vhosts) {
-    return res.sendStatus(404);
-  }
   return res.sendJson(200, vhosts);
 });
 
 app.get('/nginx', function (req, res) {
-  nginx.render(function (err, config) {
-    if (err) {
-      return res.status(500).send(err);
-    }
-    return res.sendJson(200, config);
-  });
+  res.sendJson(200, nginx.render());
 });
 
 app.put('/refresh', function (req, res) {
-  docker.refresh();
-  res.sendStatus(204);
+  res.sendJson(204, docker.refresh());
 });
 
 module.exports = exports = app;

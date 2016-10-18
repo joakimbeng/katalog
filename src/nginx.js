@@ -2,14 +2,21 @@
 var mustache = require('mustache');
 var fs = require('fs');
 var path = require('path');
+var pify = require('pify');
 var storage = require('./storage');
 var logger = require('./logger')('nginx');
 
 var timeoutId = null;
 
+var TEMPLATE_PATH = path.join(__dirname, '..', 'tpl', 'nginx.mustache');
+var CONFIG_PATH = path.join(__dirname, '..', 'nginx', process.env.SITE_NAME || 'default-site');
+
+var writeFile = pify(fs.writeFile);
+var readFile = pify(fs.readFile);
+
 storage.onPersist(function (data) {
   if (!data || !data.reason || data.reason.indexOf('VHOST') < 0) {
-    logger.log('Site config not saved since unrelated event.');
+    logger.log('Site config not saved since unrelated event.', data && data.reason);
     return;
   }
 
@@ -23,63 +30,56 @@ storage.onPersist(function (data) {
 
   timeoutId = setTimeout(function () {
     timeoutId = null;
-    save(path.join(__dirname, '..', 'nginx', process.env.SITE_NAME || 'default-site'), function (err) {
-      if (err) {
-        logger.error(err);
-      } else {
-        logger.log('Site config saved');
-      }
-    });
+    save(CONFIG_PATH)
+      .then(() => logger.log('Site config saved'))
+      .catch(err => logger.error(err));
   }, 1000 * delay);
 });
 
-exports.render = function render (cb) {
-  return renderConfig(cb);
+exports.render = function render () {
+  return renderConfig();
 };
 
-function save (file, cb) {
-  renderConfig(function (err, config) {
-    if (err) {
-      return cb(err);
-    }
-    fs.writeFile(file, config, 'utf8', function (err) {
-      return cb(err);
+function save (file) {
+  return renderConfig()
+    .then(config => {
+      return writeFile(file, config, 'utf8');
     });
-  });
 }
 
-function renderConfig (cb) {
-  getTemplate(function (err, template) {
-    if (err) {
-      return cb(err);
-    }
-    var data = getTemplateData();
-    return cb(null, mustache.render(template, data));
-  });
+function renderConfig () {
+  return getTemplate()
+    .then(template => {
+      return getTemplateData()
+        .then(data => {
+          return mustache.render(template, data);
+        });
+    });
 }
 
 function getTemplateData () {
-  var vhosts = storage.getVhosts() || {};
+  return storage.getVhosts()
+    .then(vhosts => {
+      var data = {vhosts: []};
 
-  var data = {vhosts: []};
+      var servers = Object.keys(vhosts)
+        .reduce(function (arr, slug) {
+          arr.push.apply(arr, vhosts[slug]);
+          return arr;
+        }, []);
 
-  var servers = Object.keys(vhosts)
-    .reduce(function (arr, slug) {
-      arr.push.apply(arr, vhosts[slug]);
-      return arr;
-    }, []);
+      var hostsForTemplate = transformServersForTemplate(servers);
 
-  var hostsForTemplate = transformServersForTemplate(servers);
+      data.vhosts = hostsForTemplate.filter(function (vhost) {
+        return vhost.host !== 'default';
+      });
 
-  data.vhosts = hostsForTemplate.filter(function (vhost) {
-    return vhost.host !== 'default';
-  });
+      data.defaultServer = hostsForTemplate.filter(function (vhost) {
+        return vhost.host === 'default';
+      })[0];
 
-  data.defaultServer = hostsForTemplate.filter(function (vhost) {
-    return vhost.host === 'default';
-  })[0];
-
-  return data;
+      return data;
+    });
 }
 /**
  * Transforming this:
@@ -146,11 +146,6 @@ function fixPath (path) {
   return path;
 }
 
-function getTemplate (cb) {
-  fs.readFile(path.join(__dirname, '..', 'tpl', 'nginx.mustache'), 'utf8', function (err, content) {
-    if (err) {
-      return cb(err);
-    }
-    return cb(null, content);
-  });
+function getTemplate () {
+  return readFile(TEMPLATE_PATH, 'utf8');
 }

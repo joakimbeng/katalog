@@ -1,94 +1,90 @@
 'use strict';
+var dockerEventStream = require('docker-event-stream');
 var Docker = require('dockerode');
-var DockerEvents = require('docker-events');
+var pify = require('pify');
 var storage = require('./storage');
 var slug = require('./slug');
 var logger = require('./logger')('docker');
 
-var docker = new Docker({
-  socketPath: '/var/run/docker.sock'
-});
+var UNIMPORTANT_EVENTS = ['resize', 'create', 'attach'];
 
-var emitter = new DockerEvents({docker: docker});
+var docker;
+var listContainers;
 
-exports.start = function start (cb) {
-  storage.init(function (err) {
-    if (err) {
-      return cb && cb(err);
-    }
-    emitter.start();
-    emitter.on('connect', function () {
-      logger.log('Connected');
-      cb && cb();
-    });
-    emitter.on('error', function (err) {
-      logger.error(err);
-      cb && cb(err);
+exports.start = function start () {
+  return new Promise((resolve, reject) => {
+    storage.init(function () {
+      dockerEventStream((err, stream) => {
+        if (err) {
+          logger.error(err);
+          return reject(err);
+        }
+
+        docker = new Docker();
+        listContainers = pify(docker.listContainers).bind(docker);
+
+        stream.on('data', e => {
+          if (!e.status) {
+            return;
+          }
+          logger.log(`${e.status} container`, e);
+          syncContainer(e).catch(err => logger.error(err.stack || err));
+        });
+        resolve();
+      })
+      .on('connection', function () {
+        logger.log('Connected');
+      })
+      .on('reconnect', function (n, delay) {
+        logger.log(`Reconnecting #${n} with delay: ${delay}`);
+      })
+      .on('disconnect', function (err) {
+        if (err) {
+          logger.error('Disconnected', err.stack || err);
+        } else {
+          logger.log('Disconnected');
+        }
+      });
     });
   });
 };
 
-exports.refresh = function refresh (cb) {
-  storage.removeImages();
-  docker.listContainers(function (err, containers) {
-    if (err) {
-      return cb && cb(err);
-    }
-    containers.forEach(function (info) {
-      var msg = {id: info.Id, status: 'start'};
-      syncContainer(msg);
+exports.refresh = function refresh () {
+  return storage.removeImages()
+    .then(() => listContainers())
+    .then(containers => {
+      return Promise.all(containers.map(function (info) {
+        var msg = {id: info.Id, status: 'start'};
+        return syncContainer(msg);
+      }));
     });
-    cb && cb();
-  });
 };
-
-emitter.on('start', function(message) {
-  logger.log('container started:', message);
-  syncContainer(message);
-});
-
-emitter.on('stop', function(message) {
-  logger.log('container stopped:', message);
-  syncContainer(message);
-});
-
-emitter.on('die', function(message) {
-  logger.log('container died:', message);
-  syncContainer(message);
-});
-
-emitter.on('destroy', function(message) {
-  logger.log('container destroyed:', message);
-  syncContainer(message);
-});
 
 function syncContainer (message) {
+  if (UNIMPORTANT_EVENTS.includes(message.status)) {
+    return Promise.resolve();
+  }
   if (message.status !== 'start') {
-    storage.removeImage(message.id);
-    return;
+    return storage.removeImage(message.id);
   }
   var container = docker.getContainer(message.id);
 
-  container.inspect(function (err, data) {
-    if (err) {
-      return logger.error(err);
-    }
+  var inspect = pify(container.inspect).bind(container);
 
-    var config = getConfig(message, data);
+  return inspect()
+    .then(data => {
+      var config = getConfig(message, data);
 
-    var hosts = getHosts(config);
+      var hosts = getHosts(config);
 
-    var services = getServices(config);
+      var services = getServices(config);
 
-    var i;
-    for (i = 0; i < hosts.length; i++) {
-      storage.addVhost(hosts[i]);
-    }
-    for (i = 0; i < services.length; i++) {
-      storage.addService(services[i]);
-    }
-
-  });
+      return Promise.all(
+        []
+        .concat(hosts.map(host => storage.addVhost(host)))
+        .concat(services.map(service => storage.addService(service)))
+      );
+    });
 }
 
 function getConfig (message, data) {
