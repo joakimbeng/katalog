@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.6.1"></a>
+## [1.6.1](https://github.com/joakimbeng/katalog/compare/v1.6.0...v1.6.1) (2016-10-19)
+
+
+### Bug Fixes
+
+* **docker:** don't remove containers on unrelated events ([c31c730](https://github.com/joakimbeng/katalog/commit/c31c730))
+
+
+
 <a name="1.6.0"></a>
 # [1.6.0](https://github.com/joakimbeng/katalog/compare/v1.5.0...v1.6.0) (2016-10-19)
 
