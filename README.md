@@ -3,10 +3,34 @@ katalog
 
 > A service catalog and discovery application for use with Docker containers
 
+<!-- MDTOC maxdepth:6 firsth1:2 numbering:0 flatten:0 bullets:1 updateOnSave:1 -->
+
+- [What?](#what)   
+- [Usage](#usage)   
+   - [`ENV_PREFIX`](#env_prefix)   
+- [Container env vars](#container-env-vars)   
+   - [`KATALOG_VHOSTS`](#katalog_vhosts)   
+   - [`KATALOG_SERVICES`](#katalog_services)   
+- [API](#api)   
+   - [`GET /nginx`](#get-nginx)   
+   - [`GET /value`](#get-value)   
+   - [`GET /value/<key>`](#get-valuekey)   
+   - [`POST /value/<key>`](#post-valuekey)   
+   - [`DELETE /value/<key>`](#delete-valuekey)   
+   - [`GET /vhost`](#get-vhost)   
+   - [`POST /vhost`](#post-vhost)   
+   - [`DELETE /vhost/<id>`](#delete-vhostid)   
+   - [`GET /service`](#get-service)   
+   - [`GET /service/<name>`](#get-servicename)   
+   - [`POST /service`](#post-service)   
+   - [`DELETE /service/<id>`](#delete-serviceid)   
+
+<!-- /MDTOC -->
+
 ## What?
 
 Katalog listens on Docker events, like container starts and stops.
-It looks for environment variables in containers with names `KATALOG_VHOSTS` and `KATALOG_SERVICES` and automatically adds them to its service and virtual host catalog. It also generates an nginx reversed proxy config for all virtual hosts.
+It looks for environment variables in containers with names `KATALOG_VHOSTS` and `KATALOG_SERVICES` (the env var names can be customized using [`ENV_PREFIX`](#env_prefix)) and automatically adds them to its service and virtual host catalog. It also generates an nginx reversed proxy config for all virtual hosts.
 
 ## Usage
 
@@ -24,6 +48,19 @@ docker run -d --privileged -v /var/run/docker.sock:/var/run/docker.sock -v `pwd`
 
 **TIP:** Use this in conjunction with `joakimbeng/nginx-site-watcher` and mount the `/app/nginx` volume above to `/etc/nginx/sites-enabled` in the nginx container.
 
+### `ENV_PREFIX`
+
+Default: `KATALOG_`  
+
+To use other env variables than `KATALOG_VHOSTS` and `KATALOG_SERVICES` one can set the env var `ENV_PREFIX`.  
+E.g. running Katalog with `ENV_PREFIX=LOCAL_` will make Katalog monitor `LOCAL_VHOSTS` and `LOCAL_SERVICES` env vars instead of the default.
+
+This is useful if you wan't to have more than one Katalog instance running which feed different Nginx configs.
+
+## Container env vars
+
+When Katalog is running it will monitor all Docker events and listen for container starts and stops. It will then look for some special env vars set in each container (see below) which is used to register services and virtual hosts automatically.
+
 ### `KATALOG_VHOSTS`
 
 Format: `<hostname>[/<path>][:<port>][,<hostname2>[/<path>][:<port>]...]`.
@@ -32,6 +69,8 @@ Example: `KATALOG_VHOSTS=my-domain.com,other.com/folder,*.my-other-domain.com,no
 
 
 What is this useful for? See `/nginx` endpoint in the API below. The hostname `"default"` is a special one, and if specified for a container that container will be used as the default server fallback when no other virtual host is matching.
+
+To customize the name of this variable see [`ENV_PREFIX`](#env_prefix).
 
 
 ### `KATALOG_SERVICES`
@@ -44,6 +83,8 @@ Example: `KATALOG_SERVICES=mysql:3306,node-api:3000`
 Having the environment variable set as above would fill the service catalog with two services: `mysql` and `node-api` which both will point to their container's IP and their respective ports.
 
 To get information about existing services see `/service` enpoint in the API below.
+
+To customize the name of this variable see [`ENV_PREFIX`](#env_prefix).
 
 
 ## API
@@ -73,6 +114,14 @@ Parameter: `key`
 
 
 Set a value in the key/value store.
+
+
+### `DELETE /value/<key>`
+
+Parameter: `key`
+
+
+Delete a value from the key/value store.
 
 
 ### `GET /vhost`
@@ -144,4 +193,3 @@ Will yield a json object as response with the property `id`, that value is used 
 Parameter: `id`
 
 Used to manually remove a service from the catalog. Id should be the same as the one in the response when adding the service.
-

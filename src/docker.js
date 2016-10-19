@@ -6,6 +6,7 @@ var storage = require('./storage');
 var slug = require('./slug');
 var logger = require('./logger')('docker');
 
+var ENV_PREFIX = process.env.ENV_PREFIX || 'KATALOG_';
 var UNIMPORTANT_EVENTS = ['resize', 'create', 'attach'];
 
 var docker;
@@ -107,7 +108,7 @@ function getConfig (message, data) {
 }
 
 function getHosts (config) {
-  var hosts = (config.env.KATALOG_VHOSTS || []);
+  var hosts = (config.env[envName('VHOSTS')] || []);
   if (config.hostname && config.domainname) {
     hosts.push({name: config.hostname + '.' + config.domainname});
   }
@@ -127,7 +128,7 @@ function getHosts (config) {
 }
 
 function getServices (config) {
-  var services = (config.env.KATALOG_SERVICES || []);
+  var services = (config.env[envName('SERVICES')] || []);
   services = services.map(function (service) {
     service.id = config.id;
     service.image = config.name;
@@ -157,6 +158,10 @@ function parseEnvVars (env) {
     var values = parts[1] ? parts[1].split(',').map(getNameAndPort) : null;
     return {key: parts[0], values: values};
   });
+}
+
+function envName(name) {
+  return `${ENV_PREFIX}${name}`;
 }
 
 function getNameAndPort (value) {
