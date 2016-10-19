@@ -7,7 +7,8 @@ var slug = require('./slug');
 var logger = require('./logger')('docker');
 
 var ENV_PREFIX = process.env.ENV_PREFIX || 'KATALOG_';
-var UNIMPORTANT_EVENTS = ['resize', 'create', 'attach'];
+var RUNNING_EVENTS = ['start', 'unpause'];
+var NOT_RUNNING_EVENTS = ['stop', 'destroy', 'die', 'kill', 'pause', 'oom'];
 
 var docker;
 var listContainers;
@@ -62,12 +63,14 @@ exports.refresh = function refresh () {
 };
 
 function syncContainer (message) {
-  if (UNIMPORTANT_EVENTS.includes(message.status)) {
+  if (NOT_RUNNING_EVENTS.includes(message.status)) {
+    logger.log(`Container ${message.id.slice(0, 12)} has been shutdown.`);
+    return storage.removeImage(message.id);
+  } else if (!RUNNING_EVENTS.includes(message.status)) {
+    logger.log(`Non-relevant event for container: ${message.id.slice(0, 12)}`);
     return Promise.resolve();
   }
-  if (message.status !== 'start') {
-    return storage.removeImage(message.id);
-  }
+
   var container = docker.getContainer(message.id);
 
   var inspect = pify(container.inspect).bind(container);
