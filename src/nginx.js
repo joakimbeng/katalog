@@ -3,6 +3,7 @@ var mustache = require('mustache');
 var fs = require('fs');
 var path = require('path');
 var pify = require('pify');
+var debounce = require('lodash.debounce');
 var storage = require('./storage');
 var logger = require('./logger')('nginx');
 
@@ -14,26 +15,19 @@ var CONFIG_PATH = path.join(__dirname, '..', 'nginx', process.env.SITE_NAME || '
 var writeFile = pify(fs.writeFile);
 var readFile = pify(fs.readFile);
 
+var debouncedSave = debounce(() => {
+  save(CONFIG_PATH)
+  .then(() => logger.log('Site config saved'))
+  .catch(err => logger.error(err));
+}, 100);
+
 storage.onPersist(function (data) {
   if (!data || !data.reason || data.reason.indexOf('VHOST') < 0) {
     logger.log('Site config not saved since unrelated event.', data && data.reason);
     return;
   }
 
-  var delay = data.reason.indexOf('REMOVE') > -1 ? 0 : 30;
-
-  if (timeoutId) {
-    clearTimeout(timeoutId);
-  }
-
-  logger.log('About to save site config in ' + delay + ' seconds...');
-
-  timeoutId = setTimeout(function () {
-    timeoutId = null;
-    save(CONFIG_PATH)
-      .then(() => logger.log('Site config saved'))
-      .catch(err => logger.error(err));
-  }, 1000 * delay);
+  debouncedSave();
 });
 
 exports.render = function render () {
